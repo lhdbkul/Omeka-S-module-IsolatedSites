@@ -386,23 +386,34 @@ class Module extends AbstractModule
             $isSelfAssertion
         );
 
-        //Other entities permissions
+        // ─── SITE: denegar creación y administración general del sitio ───────────────
+        $acl->deny(
+            Module::ROLE_SITE_EDITOR,
+            \Omeka\Entity\Site::class,
+            ['create', 'delete']
+        );
+
         $acl->deny(
             'site_editor',
-            'Omeka\Entity\Site',
-            'create'
+            \Omeka\Controller\SiteAdmin\Index::class,
+            ['index', 'edit', 'navigation', 'users', 'theme', 'add', 'delete']
         );
-        
+
+        // ─── PÁGINAS: permitir solo listar y editar páginas ──────────────────────────
         $acl->allow(
-            null,
-            'Omeka\Entity\Site',
-            'update'
+            'site_editor',
+            \Omeka\Entity\SitePage::class,
+            ['read', 'index']        // sin 'create' ni 'delete'
         );
+
+
         $acl->deny(
             'site_editor',
-            [\Omeka\Controller\SiteAdmin\Index::class],
-            ['index', 'edit','navigation','users','theme']
+            \Omeka\Controller\SiteAdmin\Page::class,
+            ['add', 'delete','edit']         // no puede crear ni eliminar páginas
         );
+
+        // ─── SYSTEM INFO: denegar acceso a información del sistema ───────────────────
 
         $acl->deny(
             self::ROLE_SITE_EDITOR,
