@@ -10,6 +10,7 @@ use Laminas\ServiceManager\ServiceLocatorInterface;
 use Laminas\Mvc\Controller\AbstractController;
 use Laminas\View\Renderer\PhpRenderer;
 use Omeka\Module\AbstractModule;
+use Omeka\Module\Exception\ModuleCannotInstallException;
 use Omeka\Mvc\Controller\Plugin\Messenger;
 use Omeka\Stdlib\Message;
 use IsolatedSites\Form\ConfigForm;
@@ -54,6 +55,12 @@ class Module extends AbstractModule
      */
     public function install(ServiceLocatorInterface $serviceLocator, ?Messenger $messenger = null)
     {
+        if (!$this->isModuleLoaded('Log', $serviceLocator)) {
+            throw new ModuleCannotInstallException(
+                'The module "IsolatedSites" requires the module "Log" to be installed and active.'
+            );
+        }
+
         if (!$messenger) {
             $messenger = new Messenger();
         }
@@ -318,11 +325,13 @@ class Module extends AbstractModule
         );
 
         // Deny access to logs
-        $acl->deny(
-            'site_editor',
-            [\Log\Controller\Admin\LogController::class],
-            ['browse']
-        );
+        if ($this->hasAclResource($acl, \Log\Controller\Admin\LogController::class)) {
+            $acl->deny(
+                'site_editor',
+                [\Log\Controller\Admin\LogController::class],
+                ['browse']
+            );
+        }
         //Resource template permissions
         // Deny all resource template actions inherited from editor role
 
@@ -399,6 +408,31 @@ class Module extends AbstractModule
             self::ROLE_SITE_EDITOR,
             [\Omeka\Controller\Admin\SystemInfo::class],
         );
+    }
+
+    protected function isModuleLoaded(string $moduleName, ?ServiceLocatorInterface $serviceLocator = null): bool
+    {
+        $serviceLocator = $serviceLocator ?: $this->getServiceLocator();
+        if (!$serviceLocator) {
+            return false;
+        }
+
+        try {
+            $moduleManager = $serviceLocator->get('ModuleManager');
+        } catch (\Throwable $e) {
+            return false;
+        }
+
+        if (!method_exists($moduleManager, 'getLoadedModules')) {
+            return false;
+        }
+
+        return array_key_exists($moduleName, $moduleManager->getLoadedModules(true));
+    }
+
+    protected function hasAclResource($acl, string $resource): bool
+    {
+        return !method_exists($acl, 'hasResource') || $acl->hasResource($resource);
     }
     
     /**
