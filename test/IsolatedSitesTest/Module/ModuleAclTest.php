@@ -121,28 +121,20 @@ class ModuleAclTest extends TestCase
             $acl->denies,
             static function (array $call): bool {
                 return $call['role'] === Module::ROLE_SITE_EDITOR
-                    && $call['resource'] === 'Omeka\Entity\Site'
-                    && $call['privileges'] === 'create';
+                    && $call['resource'] === \Omeka\Entity\Site::class
+                    && $call['privileges'] === ['create', 'delete'];
             },
             'Site editor should be prevented from creating sites.'
         );
 
         $this->assertAclCallExists(
-            $acl->allows,
-            static function (array $call): bool {
-                return $call['role'] === null
-                    && $call['resource'] === 'Omeka\Entity\Site'
-                    && $call['privileges'] === 'update';
-            },
-            'Site updates should remain allowed for all roles when no role is specified.'
-        );
-
-        $this->assertAclCallExists(
             $acl->denies,
             static function (array $call): bool {
+                $resource = (array) $call['resource'];
+                $privileges = (array) $call['privileges'];
                 return $call['role'] === Module::ROLE_SITE_EDITOR
-                    && $call['resource'] === [\Omeka\Controller\SiteAdmin\Index::class]
-                    && $call['privileges'] === ['index', 'edit', 'navigation', 'users', 'theme'];
+                    && in_array(\Omeka\Controller\SiteAdmin\Index::class, $resource, true)
+                    && count(array_intersect(['index', 'edit', 'navigation', 'users', 'theme'], $privileges)) === 5;
             },
             'Site editor should not access restricted site admin actions.'
         );

@@ -388,7 +388,7 @@ class Module extends AbstractModule
 
         // ─── SITE: denegar creación y administración general del sitio ───────────────
         $acl->deny(
-            'site_editor',
+            Module::ROLE_SITE_EDITOR,
             \Omeka\Entity\Site::class,
             ['create', 'delete']
         );
