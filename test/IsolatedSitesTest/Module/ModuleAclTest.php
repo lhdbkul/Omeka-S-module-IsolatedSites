@@ -14,6 +14,7 @@ class ModuleAclTest extends TestCase
     {
         $module = new Module();
         $acl = new RecordingAcl();
+        $acl->resources[\Log\Controller\Admin\LogController::class] = true;
 
         $siteAccessAssertion = $this->getMockBuilder(\IsolatedSites\Assertion\HasAccessToItemSiteAssertion::class)
             ->disableOriginalConstructor()
@@ -156,6 +157,37 @@ class ModuleAclTest extends TestCase
         );
     }
 
+    public function testLogAclRuleIsSkippedWhenLogResourceIsUnavailable(): void
+    {
+        $module = new Module();
+        $acl = new RecordingAcl();
+
+        $siteAccessAssertion = $this->getMockBuilder(\IsolatedSites\Assertion\HasAccessToItemSiteAssertion::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['assert'])
+            ->getMock();
+
+        $serviceLocator = $this->createMock(ServiceLocatorInterface::class);
+        $serviceLocator->expects($this->exactly(2))
+            ->method('get')
+            ->willReturnMap([
+                ['Omeka\Acl', $acl],
+                [\IsolatedSites\Assertion\HasAccessToItemSiteAssertion::class, $siteAccessAssertion],
+            ]);
+
+        $module->setServiceLocator($serviceLocator);
+
+        $this->invokeAddAclRoleAndRules($module);
+
+        foreach ($acl->denies as $call) {
+            $this->assertNotContains(
+                \Log\Controller\Admin\LogController::class,
+                (array) $call['resource'],
+                'Log ACL rule should be skipped when the Log resource is not registered.'
+            );
+        }
+    }
+
     private function invokeAddAclRoleAndRules(Module $module): void
     {
         $method = new \ReflectionMethod($module, 'addAclRoleAndRules');
@@ -182,6 +214,9 @@ class ModuleAclTest extends TestCase
 
 class RecordingAcl
 {
+    /** @var array<string, bool> */
+    public array $resources = [];
+
     /** @var array<int, array{role:mixed,resource:mixed,privileges:mixed,assertion:mixed}> */
     public array $denies = [];
 
@@ -194,6 +229,11 @@ class RecordingAcl
 
     public function addRoleLabel($role, $label): void
     {
+    }
+
+    public function hasResource($resource): bool
+    {
+        return !empty($this->resources[$resource]);
     }
 
     public function deny($role = null, $resource = null, $privileges = null, $assertion = null): void

@@ -19,6 +19,22 @@
   ],
   "modules": [
     {
+      "name": "Common",
+      "state": "activate",
+      "source": {
+        "type": "url",
+        "url": "https://github.com/Daniel-KM/Omeka-S-module-Common/archive/refs/heads/master.zip"
+      }
+    },    
+    {
+      "name": "Log",
+      "state": "activate",
+      "source": {
+        "type": "url",
+        "url": "https://github.com/Daniel-KM/Omeka-S-module-Log/archive/refs/heads/master.zip"
+      }
+    },
+    {
       "name": "IsolatedSites",
       "state": "activate",
       "source": {

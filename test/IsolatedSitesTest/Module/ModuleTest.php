@@ -10,6 +10,7 @@ use Laminas\ServiceManager\ServiceLocatorInterface;
 use Laminas\Mvc\Controller\AbstractController;
 use Laminas\View\Renderer\PhpRenderer;
 use Omeka\Module\AbstractModule;
+use Omeka\Module\Exception\ModuleCannotInstallException;
 use Omeka\Mvc\Controller\Plugin\Messenger;
 use PHPUnit\Framework\TestCase;
 use IsolatedSites\Listener\ModifyQueryListener;
@@ -57,6 +58,17 @@ class ModuleTest extends TestCase
 
     public function testInstall()
     {
+        $moduleManager = $this->createMock(\Laminas\ModuleManager\ModuleManager::class);
+        $moduleManager->expects($this->once())
+            ->method('getLoadedModules')
+            ->with(true)
+            ->willReturn(['Log' => new \stdClass()]);
+
+        $this->serviceLocator->expects($this->once())
+            ->method('get')
+            ->with('ModuleManager')
+            ->willReturn($moduleManager);
+
         // Capture that success message is added
         $messenger = $this->createMock(\Omeka\Mvc\Controller\Plugin\Messenger::class);
         $messenger->expects($this->once())
@@ -67,6 +79,25 @@ class ModuleTest extends TestCase
             }));
     
         $this->module->install($this->serviceLocator, $messenger);
+    }
+
+    public function testInstallThrowsWhenLogModuleIsMissing(): void
+    {
+        $moduleManager = $this->createMock(\Laminas\ModuleManager\ModuleManager::class);
+        $moduleManager->expects($this->once())
+            ->method('getLoadedModules')
+            ->with(true)
+            ->willReturn([]);
+
+        $this->serviceLocator->expects($this->once())
+            ->method('get')
+            ->with('ModuleManager')
+            ->willReturn($moduleManager);
+
+        $this->expectException(ModuleCannotInstallException::class);
+        $this->expectExceptionMessage('The module "IsolatedSites" requires the module "Log" to be installed and active.');
+
+        $this->module->install($this->serviceLocator);
     }
 
     public function testUninstall()
