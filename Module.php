@@ -432,7 +432,7 @@ class Module extends AbstractModule
 
     protected function hasAclResource($acl, string $resource): bool
     {
-        return !method_exists($acl, 'hasResource') || $acl->hasResource($resource);
+        return is_object($acl) && method_exists($acl, 'hasResource') && $acl->hasResource($resource);
     }
     
     /**

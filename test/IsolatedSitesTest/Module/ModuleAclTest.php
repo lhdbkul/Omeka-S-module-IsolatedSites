@@ -180,9 +180,9 @@ class ModuleAclTest extends TestCase
         $this->invokeAddAclRoleAndRules($module);
 
         foreach ($acl->denies as $call) {
-            $this->assertNotSame(
-                [\Log\Controller\Admin\LogController::class],
-                $call['resource'],
+            $this->assertNotContains(
+                \Log\Controller\Admin\LogController::class,
+                (array) $call['resource'],
                 'Log ACL rule should be skipped when the Log resource is not registered.'
             );
         }
